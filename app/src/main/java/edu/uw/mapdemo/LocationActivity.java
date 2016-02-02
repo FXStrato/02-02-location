@@ -13,6 +13,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -32,22 +33,58 @@ import com.google.android.gms.location.LocationSettingsStatusCodes;
 import java.text.DateFormat;
 import java.util.Date;
 
-public class LocationActivity extends AppCompatActivity {
+public class LocationActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
 
     private static final String TAG = "** LOC DEMO **";
+
+    GoogleApiClient mGoogleApiClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        if(mGoogleApiClient == null) {
+            mGoogleApiClient =
+                    new GoogleApiClient.Builder(this)
+                    .addConnectionCallbacks(this)
+                    .addOnConnectionFailedListener(this)
+                    .addApi(LocationServices.API)
+                    .build();
+        }
+
+
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        mGoogleApiClient.connect();
+
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        mGoogleApiClient.disconnect();
     }
 
 
 
     /** Helper method for getting location **/
     public void getLocation(View v){
-        //TODO: Fill me in!
+        if(mGoogleApiClient != null) {
+            //When API has connected
+            Location loc = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+
+            if(loc == null) {
+                Log.v(TAG, "Last location is not set");
+            } else {
+                ((TextView) findViewById(R.id.txt_lat)).setText("" + loc.getLatitude());
+                ((TextView) findViewById(R.id.txt_lng)).setText("" + loc.getLongitude());
+            }
+        }
+
     }
 
 
@@ -77,5 +114,33 @@ public class LocationActivity extends AppCompatActivity {
             default:
                 return super.onContextItemSelected(item);
         }
+    }
+
+    @Override
+    public void onConnected(Bundle bundle) {
+        getLocation(null);
+        LocationRequest request = new LocationRequest();
+        request.setInterval(10000);
+        request.setFastestInterval(5000);
+        request.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+
+        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, request, this);
+
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectionResult connectionResult) {
+
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        ((TextView) findViewById(R.id.txt_lat)).setText("" + location.getLatitude());
+        ((TextView) findViewById(R.id.txt_lng)).setText("" + location.getLongitude());
     }
 }
